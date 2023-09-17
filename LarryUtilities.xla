@@ -1,0 +1,66 @@
+Sub ConvertToClassicPivot()
+    
+       Dim pt As PivotTable
+    Dim pf As PivotField
+    
+    ' Check if the active cell is within a pivot table
+    On Error Resume Next
+    Set pt = ActiveCell.PivotTable
+    On Error GoTo 0
+    
+    ' If no pivot table is selected, exit
+    If pt Is Nothing Then
+        MsgBox "Please select a cell within a pivot table.", vbExclamation, "No PivotTable Selected"
+        Exit Sub
+    End If
+    
+    ' Convert to classic layout
+    pt.RowAxisLayout xlTabularRow
+    pt.MergeLabels = False
+    
+    ' Turn on repeat item labels
+    For Each pf In pt.RowFields
+        pf.RepeatLabels = True
+        ' Turn off subtotals for each field
+        pf.Subtotals(1) = False
+    Next pf
+    
+    ' Turn off grand totals for rows and columns
+    pt.ColumnGrand = False
+    pt.RowGrand = False
+    
+End Sub
+
+Sub FixExponentialNotation()
+
+    Dim rng As Range
+    Dim tempCol As Range
+    Dim lastRow As Long
+    
+    ' Check if a single cell is selected
+    If Selection.Cells.Count <> 1 Then
+        MsgBox "Please select a single cell.", vbExclamation, "Selection Error"
+        Exit Sub
+    End If
+    
+    Set rng = Selection.EntireColumn
+    Set tempCol = rng.Offset(0, 1).EntireColumn
+    
+    ' Find the last row with data in the selected column
+    lastRow = rng.Cells(rng.Cells.Count).End(xlUp).Row
+    
+    ' Skip header: Start from second row
+    ' Apply the TEXT formula to the adjacent column
+    tempCol.Cells(2, 1).Resize(lastRow - 1).FormulaR1C1 = "=TEXT(RC[-1], ""0"")"
+    
+    ' Copy and paste values back to the original column (skip header)
+    tempCol.Cells(2, 1).Resize(lastRow - 1).Copy
+    rng.Cells(2, 1).Resize(lastRow - 1).PasteSpecial Paste:=xlPasteValues
+    
+    ' Delete the temporary column
+    tempCol.Delete
+    
+    Application.CutCopyMode = False
+    MsgBox "Process completed!", vbInformation, "Success"
+    
+End Sub
